@@ -4,477 +4,303 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Biblioteca Goblin</title>
+    <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js';
+        import { getDatabase, ref, push, set, onValue, remove, update } from 'https://www.gstatic.com/firebasejs/9.22.0/firebase-database.js';
+        window.firebase = { initializeApp, getDatabase, ref, push, set, onValue, remove, update };
+    </script>
     <style>
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-        }
         body {
-            font-family: Arial, sans-serif;
-            font-size: 2vw; /* Escalable */
-            line-height: 1.5;
-            background-color: #f4f4f4;
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            margin: 0;
+            padding: 20px;
             color: #333;
-            padding: 1rem;
-        }
-        @media (max-width: 600px) {
-            body {
-                font-size: 4vw;
-            }
-        }
-        h1 {
-            text-align: center;
-            margin-bottom: 1rem;
-            font-size: 3vw;
-        }
-        @media (max-width: 600px) {
-            h1 {
-                font-size: 6vw;
-            }
+            font-size: clamp(14px, 2vw, 18px);
         }
         .container {
             max-width: 1200px;
             margin: 0 auto;
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            padding: 20px;
+            overflow: hidden;
+        }
+        h1 {
+            text-align: center;
+            color: #4a148c;
+            margin-bottom: 20px;
         }
         .status {
             text-align: center;
-            margin-bottom: 1rem;
-            font-weight: bold;
+            margin-bottom: 20px;
         }
         .online {
             color: green;
-        }
-        .offline {
-            color: red;
-        }
-        .spinner {
-            display: none;
-            text-align: center;
-            margin: 1rem 0;
+            font-weight: bold;
         }
         form {
             display: flex;
             flex-wrap: wrap;
-            gap: 2px; /* Compacto desktop */
-            margin-bottom: 1rem;
-            background-color: #fff;
-            padding: 1rem;
-            border-radius: 5px;
-            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            gap: 10px;
+            margin-bottom: 20px;
         }
-        @media (max-width: 600px) {
-            form {
-                flex-direction: column;
-            }
+        input, select, button {
+            padding: 10px;
+            border: none;
+            border-radius: 10px;
+            font-size: inherit;
         }
-        .form-group {
-            flex: 1 1 200px;
-            min-width: 150px;
+        input[type="number"] {
+            -moz-appearance: textfield;
         }
-        label {
-            display: block;
-            margin-bottom: 0.5rem;
-            font-weight: bold;
-        }
-        input, select {
-            width: 100%;
-            padding: 0.5rem;
-            border: 1px solid #ccc;
-            border-radius: 3px;
-            font-size: 1rem;
+        input[type="number"]::-webkit-outer-spin-button,
+        input[type="number"]::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
         }
         button {
-            padding: 0.5rem 1rem;
-            border: none;
-            border-radius: 3px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
             cursor: pointer;
-            font-size: 1rem;
-            margin: 0.5rem 0;
-        }
-        @media (max-width: 600px) {
-            button {
-                width: 100%; /* Full-width */
-                padding: 1rem; /* Touch-friendly */
-            }
-        }
-        .btn-primary {
-            background-color: #007bff;
-            color: white;
-        }
-        .btn-secondary {
-            background-color: #6c757d;
-            color: white;
-        }
-        .btn-danger {
-            background-color: #dc3545;
-            color: white;
-        }
-        .search {
-            margin-bottom: 1rem;
-        }
-        #search {
+            transition: transform 0.2s;
             width: 100%;
-            padding: 0.5rem;
-            border: 1px solid #ccc;
-            border-radius: 3px;
-            font-size: 1rem;
+        }
+        button:hover {
+            transform: scale(1.05);
         }
         .table-container {
             overflow-x: auto;
-            margin-bottom: 1rem;
-        }
-        @media (max-width: 600px) {
-            .table-container {
-                display: none; /* Hide table on mobile */
-            }
-            .cards {
-                display: block;
-            }
         }
         table {
             width: 100%;
-            border-collapse: collapse;
-            background-color: #fff;
-            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            border-collapse: separate;
+            border-spacing: 0 2px;
+            margin-bottom: 20px;
         }
         th, td {
-            padding: 0.5rem;
+            padding: 10px;
             text-align: left;
-            border-bottom: 1px solid #ddd;
+            border: 1px solid #ddd;
+            border-radius: 10px;
         }
         th {
-            background-color: #f8f9fa;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
             cursor: pointer;
+            transition: background 0.2s;
         }
         th:hover {
-            background-color: #e9ecef;
-        }
-        .cards {
-            display: none;
-        }
-        @media (max-width: 600px) {
-            .cards {
-                display: block;
-            }
+            background: linear-gradient(135deg, #764ba2, #667eea);
         }
         .card {
-            background-color: #fff;
-            margin-bottom: 1rem;
-            padding: 1rem;
-            border-radius: 5px;
-            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            display: none;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            padding: 15px;
+            margin-bottom: 10px;
+            transition: transform 0.2s;
         }
-        .card h3 {
-            margin-bottom: 0.5rem;
+        .card:hover {
+            transform: translateY(-5px);
         }
-        .card p {
-            margin-bottom: 0.25rem;
+        .spinner {
+            display: none;
+            text-align: center;
+            margin: 20px 0;
         }
-        .card .actions {
-            margin-top: 0.5rem;
+        .spinner::after {
+            content: '';
+            width: 40px;
+            height: 40px;
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
         }
-        .card .actions button {
-            margin-right: 0.5rem;
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        @media (max-width: 600px) {
+            table { display: none; }
+            .card { display: block; }
+            form { flex-direction: column; }
+            button { width: 100%; }
         }
     </style>
 </head>
 <body>
     <div class="container">
         <h1>Biblioteca Goblin</h1>
-        <div id="status" class="status offline">Offline</div>
-        <div id="spinner" class="spinner">Carregando...</div>
+        <div class="status" id="status">Offline</div>
         <form id="bookForm">
-            <div class="form-group">
-                <label for="titulo">Título</label>
-                <input type="text" id="titulo" required oninput="this.value = this.value.toUpperCase()">
-            </div>
-            <div class="form-group">
-                <label for="autor">Autor</label>
-                <input type="text" id="autor" required oninput="this.value = this.value.toUpperCase()">
-            </div>
-            <div class="form-group">
-                <label for="nacionalidade">Nacionalidade</label>
-                <input type="text" id="nacionalidade" required oninput="this.value = this.value.toUpperCase()">
-            </div>
-            <div class="form-group">
-                <label for="tipo">Tipo</label>
-                <input type="text" id="tipo" required oninput="this.value = this.value.toUpperCase()">
-            </div>
-            <div class="form-group">
-                <label for="genero">Gênero</label>
-                <input type="text" id="genero" required oninput="this.value = this.value.toUpperCase()">
-            </div>
-            <div class="form-group">
-                <label for="ano">Ano</label>
-                <input type="number" id="ano" required>
-            </div>
-            <div class="form-group">
-                <label for="edicao">Edição</label>
-                <input type="text" id="edicao" required oninput="this.value = this.value.toUpperCase()">
-            </div>
-            <div class="form-group">
-                <label for="editora">Editora</label>
-                <input type="text" id="editora" required oninput="this.value = this.value.toUpperCase()">
-            </div>
-            <div class="form-group">
-                <label for="status">Status</label>
-                <select id="statusSelect" required onchange="this.value = this.value.toUpperCase()">
-                    <option value="">Selecione</option>
-                    <option value="LIDO">LIDO</option>
-                    <option value="LENDO">LENDO</option>
-                    <option value="LER">LER</option>
-                    <option value="JOGO">JOGO</option>
-                    <option value="JOGUEI">JOGUEI</option>
-                    <option value="AINDA NÃO JOGUEI">AINDA NÃO JOGUEI</option>
-                </select>
-            </div>
-            <div class="form-group">
-                <label for="nota">Nota (0-10)</label>
-                <input type="number" id="nota" min="0" max="10" step="0.1" required>
-            </div>
-            <button type="submit" class="btn-primary">Adicionar</button>
-            <button type="button" id="clearBtn" class="btn-secondary">Limpar</button>
+            <input type="text" id="titulo" placeholder="Título" oninput="this.value = this.value.toUpperCase()" onchange="this.value = this.value.toUpperCase()">
+            <input type="text" id="autor" placeholder="Autor" oninput="this.value = this.value.toUpperCase()" onchange="this.value = this.value.toUpperCase()">
+            <select id="statusSelect">
+                <option value="">Status</option>
+                <option value="LIDO">LIDO</option>
+                <option value="LENDO">LENDO</option>
+                <option value="LER">LER</option>
+                <option value="JOGO">JOGO</option>
+                <option value="JOGUEI">JOGUEI</option>
+                <option value="AINDA NÃO JOGUEI">AINDA NÃO JOGUEI</option>
+            </select>
+            <input type="number" id="nota" placeholder="Nota" min="0" max="10" step="0.1">
+            <button type="submit" id="submitBtn">Adicionar</button>
+            <button type="button" id="clearBtn">Limpar</button>
         </form>
-        <div class="search">
-            <input type="text" id="search" placeholder="Buscar...">
-        </div>
+        <input type="text" id="search" placeholder="Buscar..." style="width: 100%; margin-bottom: 20px; padding: 10px; border-radius: 10px; border: none;">
+        <div class="spinner" id="spinner"></div>
         <div class="table-container">
             <table id="booksTable">
                 <thead>
                     <tr>
-                        <th data-sort="titulo">Título</th>
-                        <th data-sort="autor">Autor</th>
-                        <th data-sort="nacionalidade">Nacionalidade</th>
-                        <th data-sort="tipo">Tipo</th>
-                        <th data-sort="genero">Gênero</th>
-                        <th data-sort="ano">Ano</th>
-                        <th data-sort="edicao">Edição</th>
-                        <th data-sort="editora">Editora</th>
-                        <th data-sort="status">Status</th>
-                        <th data-sort="nota">Nota</th>
+                        <th onclick="sortTable(0)">Título</th>
+                        <th onclick="sortTable(1)">Autor</th>
+                        <th onclick="sortTable(2)">Status</th>
+                        <th onclick="sortTable(3)">Nota</th>
                         <th>Ações</th>
                     </tr>
                 </thead>
                 <tbody id="booksBody"></tbody>
             </table>
         </div>
-        <div class="cards" id="booksCards"></div>
+        <div id="cardsContainer"></div>
     </div>
-    <script type="module">
-        import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js';
-        import { getAuth, signInAnonymously } from 'https://www.gstatic.com/firebasejs/9.22.0/firebase-auth.js';
-        import { getDatabase, ref, onValue, push, set, remove, update } from 'https://www.gstatic.com/firebasejs/9.22.0/firebase-database.js';
-
-        // Configuração Firebase (substitua com suas credenciais)
-        const firebaseConfig = {   apiKey: "AIzaSyDfIj4XwPq-amWJsfBN4BLX4dZB17Wui0g",
-   authDomain: "biblioteca-goblin.firebaseapp.com",
-   databaseURL: "https://biblioteca-goblin-default-rtdb.firebaseio.com",
-   projectId: "biblioteca-goblin",
-   storageBucket: "biblioteca-goblin.firebasestorage.app",
-   messagingSenderId: "979019511905",
-   appId: "1:979019511905:web:c878a73268e149bb409220"
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyDfIj4XwPq-amWJsfBN4BLX4dZB17Wui0g",
+            authDomain: "biblioteca-goblin.firebaseapp.com",
+            databaseURL: "https://biblioteca-goblin-default-rtdb.firebaseio.com",
+            projectId: "biblioteca-goblin",
+            storageBucket: "biblioteca-goblin.firebasestorage.app",
+            messagingSenderId: "979019511905",
+            appId: "1:979019511905:web:c878a73268e149bb409220"
         };
-
-        const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
-        const db = getDatabase(app);
-
-        let booksRef;
+        const app = window.firebase.initializeApp(firebaseConfig);
+        const database = window.firebase.getDatabase(app);
+        const booksRef = window.firebase.ref(database, 'books');
         let books = [];
-        let currentEditId = null;
-        let isOnline = navigator.onLine;
-
+        let editingId = null;
         const statusEl = document.getElementById('status');
-        const spinnerEl = document.getElementById('spinner');
+        const spinner = document.getElementById('spinner');
         const form = document.getElementById('bookForm');
-        const searchEl = document.getElementById('search');
+        const searchInput = document.getElementById('search');
         const tableBody = document.getElementById('booksBody');
-        const cardsEl = document.getElementById('booksCards');
+        const cardsContainer = document.getElementById('cardsContainer');
+        const submitBtn = document.getElementById('submitBtn');
         const clearBtn = document.getElementById('clearBtn');
 
-        // Autenticação anônima
-        signInAnonymously(auth).then(() => {
-            booksRef = ref(db, '/books');
-            loadBooks();
-        }).catch(error => {
-            console.error('Erro na autenticação:', error);
-        });
+        function showSpinner() { spinner.style.display = 'block'; }
+        function hideSpinner() { spinner.style.display = 'none'; }
 
-        // Verificar conexão
-        window.addEventListener('online', () => {
-            isOnline = true;
+        window.firebase.onValue(booksRef, (snapshot) => {
             statusEl.textContent = 'Online';
-            statusEl.className = 'status online';
-            syncOfflineData();
-        });
-        window.addEventListener('offline', () => {
-            isOnline = false;
-            statusEl.textContent = 'Offline';
-            statusEl.className = 'status offline';
-        });
-
-        // Carregar livros
-        function loadBooks() {
-            spinnerEl.style.display = 'block';
-            onValue(booksRef, (snapshot) => {
-                books = [];
-                snapshot.forEach(child => {
-                    books.push({ id: child.key, ...child.val() });
-                });
-                localStorage.setItem('books', JSON.stringify(books));
-                renderBooks();
-                spinnerEl.style.display = 'none';
-            }, { onlyOnce: false });
-        }
-
-        // Sincronizar dados offline
-        function syncOfflineData() {
-            const offlineBooks = JSON.parse(localStorage.getItem('books') || '[]');
-            offlineBooks.forEach(book => {
-                if (!books.find(b => b.id === book.id)) {
-                    push(booksRef, book);
-                }
+            statusEl.classList.add('online');
+            books = [];
+            snapshot.forEach(child => {
+                books.push({ id: child.key, ...child.val() });
             });
-        }
+            localStorage.setItem('books', JSON.stringify(books));
+            renderBooks();
+            hideSpinner();
+        }, () => {
+            statusEl.textContent = 'Offline';
+            statusEl.classList.remove('online');
+            books = JSON.parse(localStorage.getItem('books')) || [];
+            renderBooks();
+            hideSpinner();
+        });
 
-        // Renderizar livros
         function renderBooks() {
             const filtered = books.filter(book => 
-                Object.values(book).some(val => 
-                    val && val.toString().toLowerCase().includes(searchEl.value.toLowerCase())
-                )
+                Object.values(book).some(val => val && val.toString().toLowerCase().includes(searchInput.value.toLowerCase()))
             );
-            renderTable(filtered);
-            renderCards(filtered);
-        }
-
-        function renderTable(booksList) {
             tableBody.innerHTML = '';
-            booksList.forEach(book => {
+            cardsContainer.innerHTML = '';
+            filtered.forEach(book => {
                 const row = document.createElement('tr');
                 row.innerHTML = `
-                    <td>${book.titulo}</td>
-                    <td>${book.autor}</td>
-                    <td>${book.nacionalidade}</td>
-                    <td>${book.tipo}</td>
-                    <td>${book.genero}</td>
-                    <td>${book.ano}</td>
-                    <td>${book.edicao}</td>
-                    <td>${book.editora}</td>
-                    <td>${book.status}</td>
-                    <td>${book.nota}</td>
+                    <td>${book.titulo || ''}</td>
+                    <td>${book.autor || ''}</td>
+                    <td>${book.status || ''}</td>
+                    <td>${book.nota || ''}</td>
                     <td>
-                        <button class="btn-secondary" onclick="editBook('${book.id}')">Editar</button>
-                        <button class="btn-danger" onclick="deleteBook('${book.id}')">Deletar</button>
+                        <button onclick="editBook('${book.id}')">Editar</button>
+                        <button onclick="deleteBook('${book.id}')">Deletar</button>
                     </td>
                 `;
                 tableBody.appendChild(row);
-            });
-        }
-
-        function renderCards(booksList) {
-            cardsEl.innerHTML = '';
-            booksList.forEach(book => {
                 const card = document.createElement('div');
                 card.className = 'card';
                 card.innerHTML = `
-                    <h3>${book.titulo}</h3>
-                    <p><strong>Autor:</strong> ${book.autor}</p>
-                    <p><strong>Nacionalidade:</strong> ${book.nacionalidade}</p>
-                    <p><strong>Tipo:</strong> ${book.tipo}</p>
-                    <p><strong>Gênero:</strong> ${book.genero}</p>
-                    <p><strong>Ano:</strong> ${book.ano}</p>
-                    <p><strong>Edição:</strong> ${book.edicao}</p>
-                    <p><strong>Editora:</strong> ${book.editora}</p>
-                    <p><strong>Status:</strong> ${book.status}</p>
-                    <p><strong>Nota:</strong> ${book.nota}</p>
-                    <div class="actions">
-                        <button class="btn-secondary" onclick="editBook('${book.id}')">Editar</button>
-                        <button class="btn-danger" onclick="deleteBook('${book.id}')">Deletar</button>
-                    </div>
+                    <h3>${book.titulo || ''}</h3>
+                    <p><strong>Autor:</strong> ${book.autor || ''}</p>
+                    <p><strong>Status:</strong> ${book.status || ''}</p>
+                    <p><strong>Nota:</strong> ${book.nota || ''}</p>
+                    <button onclick="editBook('${book.id}')">Editar</button>
+                    <button onclick="deleteBook('${book.id}')">Deletar</button>
                 `;
-                cardsEl.appendChild(card);
+                cardsContainer.appendChild(card);
             });
         }
 
-        // Adicionar/Editar livro
-        form.addEventListener('submit', e => {
+        form.addEventListener('submit', (e) => {
             e.preventDefault();
             const book = {
-                titulo: document.getElementById('titulo').value,
-                autor: document.getElementById('autor').value,
-                nacionalidade: document.getElementById('nacionalidade').value,
-                tipo: document.getElementById('tipo').value,
-                genero: document.getElementById('genero').value,
-                ano: parseInt(document.getElementById('ano').value),
-                edicao: document.getElementById('edicao').value,
-                editora: document.getElementById('editora').value,
+                titulo: document.getElementById('titulo').value.trim(),
+                autor: document.getElementById('autor').value.trim(),
                 status: document.getElementById('statusSelect').value,
-                nota: parseFloat(document.getElementById('nota').value)
+                nota: document.getElementById('nota').value
             };
-            if (currentEditId) {
-                update(ref(db, `/books/${currentEditId}`), book);
-                currentEditId = null;
+            showSpinner();
+            if (editingId) {
+                window.firebase.update(window.firebase.ref(database, `books/${editingId}`), book);
+                editingId = null;
+                submitBtn.textContent = 'Adicionar';
             } else {
-                push(booksRef, book);
+                window.firebase.push(booksRef, book);
             }
             form.reset();
         });
 
-        // Limpar form
         clearBtn.addEventListener('click', () => {
             form.reset();
-            currentEditId = null;
+            editingId = null;
+            submitBtn.textContent = 'Adicionar';
         });
 
-        // Busca
-        searchEl.addEventListener('input', renderBooks);
+        searchInput.addEventListener('input', renderBooks);
 
-        // Ordenar
-        document.querySelectorAll('th[data-sort]').forEach(th => {
-            th.addEventListener('click', () => {
-                const key = th.dataset.sort;
-                books.sort((a, b) => a[key] > b[key] ? 1 : -1);
-                renderBooks();
-            });
-        });
-
-        // Editar
         window.editBook = (id) => {
             const book = books.find(b => b.id === id);
             if (book) {
-                document.getElementById('titulo').value = book.titulo;
-                document.getElementById('autor').value = book.autor;
-                document.getElementById('nacionalidade').value = book.nacionalidade;
-                document.getElementById('tipo').value = book.tipo;
-                document.getElementById('genero').value = book.genero;
-                document.getElementById('ano').value = book.ano;
-                document.getElementById('edicao').value = book.edicao;
-                document.getElementById('editora').value = book.editora;
-                document.getElementById('statusSelect').value = book.status;
-                document.getElementById('nota').value = book.nota;
-                currentEditId = id;
+                document.getElementById('titulo').value = book.titulo || '';
+                document.getElementById('autor').value = book.autor || '';
+                document.getElementById('statusSelect').value = book.status || '';
+                document.getElementById('nota').value = book.nota || '';
+                editingId = id;
+                submitBtn.textContent = 'Atualizar';
             }
         };
 
-        // Deletar
         window.deleteBook = (id) => {
             if (confirm('Tem certeza que deseja deletar este livro?')) {
-                remove(ref(db, `/books/${id}`));
+                showSpinner();
+                window.firebase.remove(window.firebase.ref(database, `books/${id}`));
             }
         };
 
-        // Carregar offline se necessário
-        if (!isOnline) {
-            books = JSON.parse(localStorage.getItem('books') || '[]');
+        window.sortTable = (col) => {
+            const cols = ['titulo', 'autor', 'status', 'nota'];
+            books.sort((a, b) => (a[cols[col]] || '').localeCompare(b[cols[col]] || ''));
             renderBooks();
-        }
+        };
 
-        // Instruções Firebase:
-        // 1. Substitua YOUR_API_KEY, etc., com suas credenciais do Firebase Console.
-        // 2. Certifique-se de que o Realtime Database está habilitado.
-        // 3. Configure regras de segurança para permitir leitura/escrita anônima se desejado.
+        renderBooks();
     </script>
 </body>
 </html>

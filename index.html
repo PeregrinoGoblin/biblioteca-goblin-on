@@ -4,100 +4,114 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Biblioteca Goblin</title>
-    <script type="module">
-        import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js';
-        import { getDatabase, ref, push, set, onValue, remove, update } from 'https://www.gstatic.com/firebasejs/9.22.0/firebase-database.js';
-        window.firebase = { initializeApp, getDatabase, ref, push, set, onValue, remove, update };
-    </script>
     <style>
         body {
-            font-family: 'Arial', sans-serif;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #333;
             margin: 0;
             padding: 20px;
-            color: #333;
-            font-size: clamp(14px, 2vw, 18px);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
         }
         .container {
             max-width: 1200px;
-            margin: 0 auto;
+            width: 100%;
             background: rgba(255, 255, 255, 0.9);
             border-radius: 15px;
             box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
             padding: 20px;
-            overflow: hidden;
+            margin-bottom: 20px;
         }
         h1 {
             text-align: center;
-            color: #4a148c;
+            color: #fff;
             margin-bottom: 20px;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
         }
         .status {
             text-align: center;
             margin-bottom: 20px;
+            font-weight: bold;
         }
         .online {
             color: green;
-            font-weight: bold;
+        }
+        .offline {
+            color: red;
         }
         form {
             display: flex;
             flex-wrap: wrap;
             gap: 10px;
             margin-bottom: 20px;
+            align-items: end;
         }
-        input, select, button {
+        input, select {
             padding: 10px;
             border: none;
-            border-radius: 10px;
-            font-size: inherit;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            font-size: 1rem;
         }
         input[type="number"] {
-            -moz-appearance: textfield;
+            width: 100px;
         }
-        input[type="number"]::-webkit-outer-spin-button,
-        input[type="number"]::-webkit-inner-spin-button {
-            -webkit-appearance: none;
-            margin: 0;
+        select {
+            width: 150px;
         }
         button {
-            background: linear-gradient(135deg, #667eea, #764ba2);
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            background: #667eea;
             color: white;
             cursor: pointer;
-            transition: transform 0.2s;
-            width: 100%;
+            font-size: 1rem;
+            transition: background 0.3s;
         }
         button:hover {
-            transform: scale(1.05);
+            background: #5a6fd8;
         }
-        .table-container {
-            overflow-x: auto;
+        .search {
+            width: 100%;
+            margin-bottom: 20px;
+        }
+        .search input {
+            width: 100%;
         }
         table {
             width: 100%;
-            border-collapse: separate;
-            border-spacing: 0 2px;
-            margin-bottom: 20px;
+            border-collapse: collapse;
+            margin-top: 20px;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
         }
         th, td {
-            padding: 10px;
+            padding: 12px;
             text-align: left;
-            border: 1px solid #ddd;
-            border-radius: 10px;
+            background: white;
         }
         th {
-            background: linear-gradient(135deg, #667eea, #764ba2);
-            color: white;
+            background: #f8f9fa;
             cursor: pointer;
-            transition: background 0.2s;
+            position: sticky;
+            top: 0;
+            z-index: 1;
         }
         th:hover {
-            background: linear-gradient(135deg, #764ba2, #667eea);
+            background: #e9ecef;
+        }
+        tr:nth-child(even) {
+            background: #f8f9fa;
         }
         .card {
             display: none;
             background: white;
-            border-radius: 15px;
+            border-radius: 10px;
             box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
             padding: 15px;
             margin-bottom: 10px;
@@ -106,13 +120,20 @@
         .card:hover {
             transform: translateY(-5px);
         }
+        .actions {
+            display: flex;
+            gap: 5px;
+        }
+        .actions button {
+            flex: 1;
+        }
         .spinner {
             display: none;
             text-align: center;
             margin: 20px 0;
         }
         .spinner::after {
-            content: '';
+            content: "";
             width: 40px;
             height: 40px;
             border: 4px solid #f3f3f3;
@@ -125,20 +146,44 @@
             100% { transform: rotate(360deg); }
         }
         @media (max-width: 600px) {
-            table { display: none; }
-            .card { display: block; }
-            form { flex-direction: column; }
-            button { width: 100%; }
+            .container {
+                padding: 10px;
+            }
+            form {
+                flex-direction: column;
+            }
+            input, select, button {
+                width: 100%;
+            }
+            table {
+                display: none;
+            }
+            .card {
+                display: block;
+            }
+            .actions button {
+                width: 100%;
+            }
         }
     </style>
 </head>
 <body>
+    <h1>Biblioteca Goblin</h1>
     <div class="container">
-        <h1>Biblioteca Goblin</h1>
         <div class="status" id="status">Offline</div>
+        <div class="spinner" id="spinner"></div>
+        <div class="search">
+            <input type="text" id="search" placeholder="Buscar..." oninput="filterBooks()">
+        </div>
         <form id="bookForm">
-            <input type="text" id="titulo" placeholder="Título" oninput="this.value = this.value.toUpperCase()" onchange="this.value = this.value.toUpperCase()">
-            <input type="text" id="autor" placeholder="Autor" oninput="this.value = this.value.toUpperCase()" onchange="this.value = this.value.toUpperCase()">
+            <input type="text" id="titulo" placeholder="Título" oninput="toUpperCase(this)">
+            <input type="text" id="autor" placeholder="Autor" oninput="toUpperCase(this)">
+            <input type="text" id="nacionalidade" placeholder="Nacionalidade" oninput="toUpperCase(this)">
+            <input type="text" id="tipo" placeholder="Tipo" oninput="toUpperCase(this)">
+            <input type="text" id="genero" placeholder="Gênero" oninput="toUpperCase(this)">
+            <input type="number" id="ano" placeholder="Ano" min="0" max="9999">
+            <input type="text" id="edicao" placeholder="Edição" oninput="toUpperCase(this)">
+            <input type="text" id="editora" placeholder="Editora" oninput="toUpperCase(this)">
             <select id="statusSelect">
                 <option value="">Status</option>
                 <option value="LIDO">LIDO</option>
@@ -149,28 +194,34 @@
                 <option value="AINDA NÃO JOGUEI">AINDA NÃO JOGUEI</option>
             </select>
             <input type="number" id="nota" placeholder="Nota" min="0" max="10" step="0.1">
-            <button type="submit" id="submitBtn">Adicionar</button>
-            <button type="button" id="clearBtn">Limpar</button>
+            <button type="button" onclick="addOrUpdateBook()" id="submitBtn">Adicionar</button>
+            <button type="button" onclick="clearForm()">Limpar</button>
         </form>
-        <input type="text" id="search" placeholder="Buscar..." style="width: 100%; margin-bottom: 20px; padding: 10px; border-radius: 10px; border: none;">
-        <div class="spinner" id="spinner"></div>
-        <div class="table-container">
-            <table id="booksTable">
-                <thead>
-                    <tr>
-                        <th onclick="sortTable(0)">Título</th>
-                        <th onclick="sortTable(1)">Autor</th>
-                        <th onclick="sortTable(2)">Status</th>
-                        <th onclick="sortTable(3)">Nota</th>
-                        <th>Ações</th>
-                    </tr>
-                </thead>
-                <tbody id="booksBody"></tbody>
-            </table>
-        </div>
-        <div id="cardsContainer"></div>
+        <table id="booksTable">
+            <thead>
+                <tr>
+                    <th onclick="sortTable(0)">Título</th>
+                    <th onclick="sortTable(1)">Autor</th>
+                    <th onclick="sortTable(2)">Nacionalidade</th>
+                    <th onclick="sortTable(3)">Tipo</th>
+                    <th onclick="sortTable(4)">Gênero</th>
+                    <th onclick="sortTable(5)">Ano</th>
+                    <th onclick="sortTable(6)">Edição</th>
+                    <th onclick="sortTable(7)">Editora</th>
+                    <th onclick="sortTable(8)">Status</th>
+                    <th onclick="sortTable(9)">Nota</th>
+                    <th>Ações</th>
+                </tr>
+            </thead>
+            <tbody id="booksBody"></tbody>
+        </table>
+        <div id="booksCards"></div>
     </div>
-    <script>
+    <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js';
+        import { getAuth, signInAnonymously } from 'https://www.gstatic.com/firebasejs/9.22.0/firebase-auth.js';
+        import { getDatabase, ref, onValue, set, remove } from 'https://www.gstatic.com/firebasejs/9.22.0/firebase-database.js';
+
         const firebaseConfig = {
             apiKey: "AIzaSyDfIj4XwPq-amWJsfBN4BLX4dZB17Wui0g",
             authDomain: "biblioteca-goblin.firebaseapp.com",
@@ -180,127 +231,201 @@
             messagingSenderId: "979019511905",
             appId: "1:979019511905:web:c878a73268e149bb409220"
         };
-        const app = window.firebase.initializeApp(firebaseConfig);
-        const database = window.firebase.getDatabase(app);
-        const booksRef = window.firebase.ref(database, 'books');
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const database = getDatabase(app);
+
         let books = [];
         let editingId = null;
-        const statusEl = document.getElementById('status');
-        const spinner = document.getElementById('spinner');
-        const form = document.getElementById('bookForm');
-        const searchInput = document.getElementById('search');
-        const tableBody = document.getElementById('booksBody');
-        const cardsContainer = document.getElementById('cardsContainer');
-        const submitBtn = document.getElementById('submitBtn');
-        const clearBtn = document.getElementById('clearBtn');
 
-        function showSpinner() { spinner.style.display = 'block'; }
-        function hideSpinner() { spinner.style.display = 'none'; }
-
-        window.firebase.onValue(booksRef, (snapshot) => {
-            statusEl.textContent = 'Online';
-            statusEl.classList.add('online');
-            books = [];
-            snapshot.forEach(child => {
-                books.push({ id: child.key, ...child.val() });
-            });
-            localStorage.setItem('books', JSON.stringify(books));
-            renderBooks();
-            hideSpinner();
-        }, () => {
-            statusEl.textContent = 'Offline';
-            statusEl.classList.remove('online');
-            books = JSON.parse(localStorage.getItem('books')) || [];
-            renderBooks();
-            hideSpinner();
+        signInAnonymously(auth).then(() => {
+            document.getElementById('status').textContent = 'Online';
+            document.getElementById('status').className = 'status online';
+            loadBooks();
+        }).catch((error) => {
+            console.error('Erro ao fazer login anônimo:', error);
+            loadFromCache();
         });
 
-        function renderBooks() {
-            const filtered = books.filter(book => 
-                Object.values(book).some(val => val && val.toString().toLowerCase().includes(searchInput.value.toLowerCase()))
-            );
-            tableBody.innerHTML = '';
-            cardsContainer.innerHTML = '';
-            filtered.forEach(book => {
-                const row = document.createElement('tr');
-                row.innerHTML = `
-                    <td>${book.titulo || ''}</td>
-                    <td>${book.autor || ''}</td>
-                    <td>${book.status || ''}</td>
-                    <td>${book.nota || ''}</td>
-                    <td>
-                        <button onclick="editBook('${book.id}')">Editar</button>
-                        <button onclick="deleteBook('${book.id}')">Deletar</button>
-                    </td>
-                `;
-                tableBody.appendChild(row);
-                const card = document.createElement('div');
-                card.className = 'card';
-                card.innerHTML = `
-                    <h3>${book.titulo || ''}</h3>
-                    <p><strong>Autor:</strong> ${book.autor || ''}</p>
-                    <p><strong>Status:</strong> ${book.status || ''}</p>
-                    <p><strong>Nota:</strong> ${book.nota || ''}</p>
-                    <button onclick="editBook('${book.id}')">Editar</button>
-                    <button onclick="deleteBook('${book.id}')">Deletar</button>
-                `;
-                cardsContainer.appendChild(card);
+        function loadBooks() {
+            document.getElementById('spinner').style.display = 'block';
+            const booksRef = ref(database, 'books');
+            onValue(booksRef, (snapshot) => {
+                books = [];
+                snapshot.forEach((childSnapshot) => {
+                    books.push({ id: childSnapshot.key, ...childSnapshot.val() });
+                });
+                localStorage.setItem('books', JSON.stringify(books));
+                displayBooks(books);
+                document.getElementById('spinner').style.display = 'none';
+            }, (error) => {
+                console.error('Erro ao carregar livros:', error);
+                loadFromCache();
             });
         }
 
-        form.addEventListener('submit', (e) => {
-            e.preventDefault();
+        function loadFromCache() {
+            const cached = localStorage.getItem('books');
+            if (cached) {
+                books = JSON.parse(cached);
+                displayBooks(books);
+            }
+            document.getElementById('spinner').style.display = 'none';
+        }
+
+        function displayBooks(bookList) {
+            const tbody = document.getElementById('booksBody');
+            const cards = document.getElementById('booksCards');
+            tbody.innerHTML = '';
+            cards.innerHTML = '';
+            bookList.forEach(book => {
+                // Table row
+                const row = tbody.insertRow();
+                row.insertCell(0).textContent = book.titulo || '';
+                row.insertCell(1).textContent = book.autor || '';
+                row.insertCell(2).textContent = book.nacionalidade || '';
+                row.insertCell(3).textContent = book.tipo || '';
+                row.insertCell(4).textContent = book.genero || '';
+                row.insertCell(5).textContent = book.ano || '';
+                row.insertCell(6).textContent = book.edicao || '';
+                row.insertCell(7).textContent = book.editora || '';
+                row.insertCell(8).textContent = book.status || '';
+                row.insertCell(9).textContent = book.nota || '';
+                const actionsCell = row.insertCell(10);
+                actionsCell.innerHTML = `<button onclick="editBook('${book.id}')">Editar</button><button onclick="deleteBook('${book.id}')">Deletar</button>`;
+
+                // Card for mobile
+                const card = document.createElement('div');
+                card.className = 'card';
+                card.innerHTML = `
+                    <strong>Título:</strong> ${book.titulo || ''}<br>
+                    <strong>Autor:</strong> ${book.autor || ''}<br>
+                    <strong>Nacionalidade:</strong> ${book.nacionalidade || ''}<br>
+                    <strong>Tipo:</strong> ${book.tipo || ''}<br>
+                    <strong>Gênero:</strong> ${book.genero || ''}<br>
+                    <strong>Ano:</strong> ${book.ano || ''}<br>
+                    <strong>Edição:</strong> ${book.edicao || ''}<br>
+                    <strong>Editora:</strong> ${book.editora || ''}<br>
+                    <strong>Status:</strong> ${book.status || ''}<br>
+                    <strong>Nota:</strong> ${book.nota || ''}<br>
+                    <div class="actions">
+                        <button onclick="editBook('${book.id}')">Editar</button>
+                        <button onclick="deleteBook('${book.id}')">Deletar</button>
+                    </div>
+                `;
+                cards.appendChild(card);
+            });
+        }
+
+        function addOrUpdateBook() {
             const book = {
-                titulo: document.getElementById('titulo').value.trim(),
-                autor: document.getElementById('autor').value.trim(),
+                titulo: document.getElementById('titulo').value.toUpperCase(),
+                autor: document.getElementById('autor').value.toUpperCase(),
+                nacionalidade: document.getElementById('nacionalidade').value.toUpperCase(),
+                tipo: document.getElementById('tipo').value.toUpperCase(),
+                genero: document.getElementById('genero').value.toUpperCase(),
+                ano: document.getElementById('ano').value,
+                edicao: document.getElementById('edicao').value.toUpperCase(),
+                editora: document.getElementById('editora').value.toUpperCase(),
                 status: document.getElementById('statusSelect').value,
                 nota: document.getElementById('nota').value
             };
-            showSpinner();
             if (editingId) {
-                window.firebase.update(window.firebase.ref(database, `books/${editingId}`), book);
+                set(ref(database, 'books/' + editingId), book).catch(() => {
+                    updateCache(editingId, book);
+                });
                 editingId = null;
-                submitBtn.textContent = 'Adicionar';
+                document.getElementById('submitBtn').textContent = 'Adicionar';
             } else {
-                window.firebase.push(booksRef, book);
+                const newRef = ref(database, 'books').push();
+                set(newRef, book).catch(() => {
+                    addToCache(book);
+                });
             }
-            form.reset();
-        });
+            clearForm();
+        }
 
-        clearBtn.addEventListener('click', () => {
-            form.reset();
-            editingId = null;
-            submitBtn.textContent = 'Adicionar';
-        });
-
-        searchInput.addEventListener('input', renderBooks);
-
-        window.editBook = (id) => {
+        function editBook(id) {
             const book = books.find(b => b.id === id);
             if (book) {
                 document.getElementById('titulo').value = book.titulo || '';
                 document.getElementById('autor').value = book.autor || '';
+                document.getElementById('nacionalidade').value = book.nacionalidade || '';
+                document.getElementById('tipo').value = book.tipo || '';
+                document.getElementById('genero').value = book.genero || '';
+                document.getElementById('ano').value = book.ano || '';
+                document.getElementById('edicao').value = book.edicao || '';
+                document.getElementById('editora').value = book.editora || '';
                 document.getElementById('statusSelect').value = book.status || '';
                 document.getElementById('nota').value = book.nota || '';
                 editingId = id;
-                submitBtn.textContent = 'Atualizar';
+                document.getElementById('submitBtn').textContent = 'Atualizar';
             }
-        };
+        }
 
-        window.deleteBook = (id) => {
+        function deleteBook(id) {
             if (confirm('Tem certeza que deseja deletar este livro?')) {
-                showSpinner();
-                window.firebase.remove(window.firebase.ref(database, `books/${id}`));
+                remove(ref(database, 'books/' + id)).catch(() => {
+                    removeFromCache(id);
+                });
             }
-        };
+        }
 
-        window.sortTable = (col) => {
-            const cols = ['titulo', 'autor', 'status', 'nota'];
-            books.sort((a, b) => (a[cols[col]] || '').localeCompare(b[cols[col]] || ''));
-            renderBooks();
-        };
+        function clearForm() {
+            document.getElementById('bookForm').reset();
+            editingId = null;
+            document.getElementById('submitBtn').textContent = 'Adicionar';
+        }
 
-        renderBooks();
+        function filterBooks() {
+            const query = document.getElementById('search').value.toLowerCase();
+            const filtered = books.filter(book => 
+                Object.values(book).some(value => 
+                    (value || '').toString().toLowerCase().includes(query)
+                )
+            );
+            displayBooks(filtered);
+        }
+
+        function sortTable(n) {
+            const tbody = document.getElementById('booksBody');
+            const rows = Array.from(tbody.rows);
+            rows.sort((a, b) => {
+                const aVal = a.cells[n].textContent.toLowerCase();
+                const bVal = b.cells[n].textContent.toLowerCase();
+                if (aVal < bVal) return -1;
+                if (aVal > bVal) return 1;
+                return 0;
+            });
+            rows.forEach(row => tbody.appendChild(row));
+        }
+
+        function toUpperCase(element) {
+            element.value = element.value.toUpperCase();
+        }
+
+        function updateCache(id, book) {
+            const index = books.findIndex(b => b.id === id);
+            if (index !== -1) {
+                books[index] = { id, ...book };
+                localStorage.setItem('books', JSON.stringify(books));
+                displayBooks(books);
+            }
+        }
+
+        function addToCache(book) {
+            const id = Date.now().toString();
+            books.push({ id, ...book });
+            localStorage.setItem('books', JSON.stringify(books));
+            displayBooks(books);
+        }
+
+        function removeFromCache(id) {
+            books = books.filter(b => b.id !== id);
+            localStorage.setItem('books', JSON.stringify(books));
+            displayBooks(books);
+        }
     </script>
 </body>
 </html>
